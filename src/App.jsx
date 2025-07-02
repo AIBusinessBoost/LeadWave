@@ -1,105 +1,379 @@
-import React, { useState } from 'react';
-import { Header } from './components/Header';
-import { SearchForm } from './components/SearchForm';
-import { LeadResults } from './components/LeadResults';
-import { LoadingSpinner } from './components/LoadingSpinner';
-import { ErrorMessage } from './components/ErrorMessage';
-import { StatsPanel } from './components/StatsPanel';
-import { ExportPanel } from './components/ExportPanel';
+import React, { useState, useEffect } from 'react';
+import { Search, MapPin, Phone, Mail, Globe, Download, Filter, Zap, Target, TrendingUp, Users, Building, Star, ChevronRight, Play, CheckCircle } from 'lucide-react';
 
-function App() {
+const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [searchStats, setSearchStats] = useState({
-    totalSearched: 0,
-    leadsFound: 0,
-    successRate: 0
+  const [stats, setStats] = useState({
+    totalLeads: 12847,
+    activeSearches: 23,
+    successRate: 94.2,
+    avgResponseTime: '2.3s'
   });
 
-  const handleSearch = async (searchParams) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch('/api/leads/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(searchParams),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setLeads(data.leads || []);
-      setSearchStats({
-        totalSearched: data.totalSearched || 0,
-        leadsFound: data.leads?.length || 0,
-        successRate: data.successRate || 0
-      });
-    } catch (err) {
-      setError(err.message);
-      console.error('Search error:', err);
-    } finally {
-      setLoading(false);
+  // Demo leads data
+  const demoLeads = [
+    {
+      id: 1,
+      name: "TechFlow Solutions",
+      category: "Software Development",
+      phone: "+1 (555) 123-4567",
+      email: "contact@techflow.com",
+      website: "www.techflow.com",
+      address: "123 Tech Street, San Francisco, CA",
+      rating: 4.8,
+      reviews: 127,
+      verified: true
+    },
+    {
+      id: 2,
+      name: "Digital Marketing Pro",
+      category: "Marketing Agency",
+      phone: "+1 (555) 987-6543",
+      email: "hello@digitalmarketingpro.com",
+      website: "www.digitalmarketingpro.com",
+      address: "456 Marketing Ave, New York, NY",
+      rating: 4.9,
+      reviews: 89,
+      verified: true
+    },
+    {
+      id: 3,
+      name: "Creative Design Studio",
+      category: "Design Agency",
+      phone: "+1 (555) 456-7890",
+      email: "info@creativedesign.com",
+      website: "www.creativedesign.com",
+      address: "789 Design Blvd, Los Angeles, CA",
+      rating: 4.7,
+      reviews: 156,
+      verified: false
+    },
+    {
+      id: 4,
+      name: "CloudTech Innovations",
+      category: "Cloud Services",
+      phone: "+1 (555) 321-0987",
+      email: "support@cloudtech.com",
+      website: "www.cloudtech.com",
+      address: "321 Cloud Way, Seattle, WA",
+      rating: 4.6,
+      reviews: 203,
+      verified: true
+    },
+    {
+      id: 5,
+      name: "Local Restaurant Group",
+      category: "Food & Beverage",
+      phone: "+1 (555) 654-3210",
+      email: "orders@localrestaurant.com",
+      website: "www.localrestaurant.com",
+      address: "654 Food Street, Chicago, IL",
+      rating: 4.5,
+      reviews: 342,
+      verified: true
     }
+  ];
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setLeads(demoLeads);
+      setIsSearching(false);
+      setStats(prev => ({
+        ...prev,
+        totalLeads: prev.totalLeads + demoLeads.length,
+        activeSearches: prev.activeSearches + 1
+      }));
+    }, 2000);
   };
 
-  const handleExport = async (format) => {
-    try {
-      const response = await fetch(`/api/leads/export?format=${format}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ leads }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Export failed: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `leadwave-export.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(`Export failed: ${err.message}`);
-    }
+  const exportLeads = () => {
+    const csvContent = leads.map(lead => 
+      `${lead.name},${lead.category},${lead.phone},${lead.email},${lead.website},${lead.address}`
+    ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leadwave-leads.csv';
+    a.click();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Search Panel */}
-          <div className="lg:col-span-1">
-            <SearchForm onSearch={handleSearch} loading={loading} />
-            <StatsPanel stats={searchStats} />
-            <ExportPanel onExport={handleExport} leadsCount={leads.length} />
-          </div>
-
-          {/* Results Panel */}
-          <div className="lg:col-span-2">
-            {loading && <LoadingSpinner />}
-            {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
-            {!loading && !error && <LeadResults leads={leads} />}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Header */}
+      <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Zap className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">LeadWave™</h1>
+                <p className="text-xs text-gray-300">Professional Lead Generation</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-6 text-sm text-gray-300">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>Live</span>
+                </div>
+                <span>{stats.totalLeads.toLocaleString()} Leads Generated</span>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="mb-8">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              Generate High-Quality
+              <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Business Leads
+              </span>
+            </h2>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Discover and connect with potential customers using our advanced lead generation platform powered by Google Places API.
+            </p>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <div className="text-3xl font-bold text-white mb-2">{stats.totalLeads.toLocaleString()}</div>
+              <div className="text-gray-300 text-sm">Total Leads</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <div className="text-3xl font-bold text-white mb-2">{stats.activeSearches}</div>
+              <div className="text-gray-300 text-sm">Active Searches</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <div className="text-3xl font-bold text-white mb-2">{stats.successRate}%</div>
+              <div className="text-gray-300 text-sm">Success Rate</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <div className="text-3xl font-bold text-white mb-2">{stats.avgResponseTime}</div>
+              <div className="text-gray-300 text-sm">Avg Response</div>
+            </div>
+          </div>
+
+          {/* Search Form */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search for businesses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Location (city, state)"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                >
+                  <option value="">All Categories</option>
+                  <option value="restaurant">Restaurants</option>
+                  <option value="retail">Retail</option>
+                  <option value="services">Services</option>
+                  <option value="healthcare">Healthcare</option>
+                  <option value="technology">Technology</option>
+                </select>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+              className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {isSearching ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Searching...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-5 h-5" />
+                  <span>Generate Leads</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Results Section */}
+      {leads.length > 0 && (
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Search Results</h3>
+                <p className="text-gray-300">Found {leads.length} potential leads</p>
+              </div>
+              
+              <button
+                onClick={exportLeads}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export CSV</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {leads.map((lead) => (
+                <div key={lead.id} className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h4 className="text-lg font-semibold text-white">{lead.name}</h4>
+                        {lead.verified && (
+                          <CheckCircle className="w-5 h-5 text-green-400" />
+                        )}
+                      </div>
+                      <p className="text-blue-300 text-sm mb-2">{lead.category}</p>
+                      <div className="flex items-center space-x-1 mb-3">
+                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                        <span className="text-white text-sm">{lead.rating}</span>
+                        <span className="text-gray-300 text-sm">({lead.reviews} reviews)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 text-gray-300">
+                      <Phone className="w-4 h-4 text-green-400" />
+                      <span className="text-sm">{lead.phone}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 text-gray-300">
+                      <Mail className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm">{lead.email}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 text-gray-300">
+                      <Globe className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm">{lead.website}</span>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3 text-gray-300">
+                      <MapPin className="w-4 h-4 text-red-400 mt-0.5" />
+                      <span className="text-sm">{lead.address}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-white/20">
+                    <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <span>View Details</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Features Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl font-bold text-white mb-4">Why Choose LeadWave™?</h3>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Advanced features designed to supercharge your lead generation efforts
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 border border-white/20 text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Target className="w-8 h-8 text-white" />
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-4">Precision Targeting</h4>
+              <p className="text-gray-300">
+                Advanced filtering and search capabilities to find exactly the leads you need for your business.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 border border-white/20 text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <TrendingUp className="w-8 h-8 text-white" />
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-4">Real-time Data</h4>
+              <p className="text-gray-300">
+                Access up-to-date business information with real-time verification and contact details.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 border border-white/20 text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-4">Bulk Export</h4>
+              <p className="text-gray-300">
+                Export thousands of leads in various formats including CSV, Excel, and JSON for easy integration.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-black/20 backdrop-blur-md border-t border-white/20 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-white">LeadWave™</span>
+            </div>
+            <p className="text-gray-300 mb-4">
+              Professional Lead Generation Platform
+            </p>
+            <p className="text-gray-400 text-sm">
+              © 2024 LeadWave™. All rights reserved. | Powered by Google Places API
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
-}
+};
 
 export default App;
