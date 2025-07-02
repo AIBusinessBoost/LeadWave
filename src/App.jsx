@@ -14,57 +14,136 @@ const App = () => {
     avgResponseTime: '2.3s'
   });
 
+  // Mock lead data for demonstration
+  const generateMockLeads = (query, loc, cat) => {
+    const mockLeads = [
+      {
+        id: 1,
+        name: "TechFlow Solutions",
+        category: "Technology Services",
+        phone: "(555) 123-4567",
+        email: "contact@techflow.com",
+        website: "www.techflow.com",
+        address: "123 Innovation Drive, San Francisco, CA 94105",
+        rating: 4.8,
+        reviews: 127,
+        verified: true
+      },
+      {
+        id: 2,
+        name: "Green Valley Restaurant",
+        category: "Restaurant",
+        phone: "(555) 234-5678",
+        email: "info@greenvalley.com",
+        website: "www.greenvalley.com",
+        address: "456 Main Street, Austin, TX 78701",
+        rating: 4.6,
+        reviews: 89,
+        verified: true
+      },
+      {
+        id: 3,
+        name: "Premier Healthcare Group",
+        category: "Healthcare",
+        phone: "(555) 345-6789",
+        email: "admin@premierhc.com",
+        website: "www.premierhealthcare.com",
+        address: "789 Medical Center Blvd, Miami, FL 33101",
+        rating: 4.9,
+        reviews: 203,
+        verified: true
+      },
+      {
+        id: 4,
+        name: "Urban Retail Co.",
+        category: "Retail",
+        phone: "(555) 456-7890",
+        email: "sales@urbanretail.com",
+        website: "www.urbanretail.com",
+        address: "321 Shopping Plaza, New York, NY 10001",
+        rating: 4.4,
+        reviews: 156,
+        verified: false
+      },
+      {
+        id: 5,
+        name: "Elite Consulting Services",
+        category: "Professional Services",
+        phone: "(555) 567-8901",
+        email: "hello@eliteconsulting.com",
+        website: "www.eliteconsulting.com",
+        address: "654 Business Park, Chicago, IL 60601",
+        rating: 4.7,
+        reviews: 94,
+        verified: true
+      },
+      {
+        id: 6,
+        name: "Coastal Marketing Agency",
+        category: "Marketing",
+        phone: "(555) 678-9012",
+        email: "team@coastalmarketing.com",
+        website: "www.coastalmarketing.com",
+        address: "987 Creative District, Los Angeles, CA 90210",
+        rating: 4.5,
+        reviews: 78,
+        verified: true
+      }
+    ];
+
+    // Filter based on category if selected
+    let filteredLeads = mockLeads;
+    if (cat && cat !== '') {
+      filteredLeads = mockLeads.filter(lead => 
+        lead.category.toLowerCase().includes(cat.toLowerCase())
+      );
+    }
+
+    // If no category match, return all leads
+    return filteredLeads.length > 0 ? filteredLeads : mockLeads;
+  };
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
     
-    try {
-      // Make actual API call to backend
-      const response = await fetch('/api/search-leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          location: location,
-          category: category
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLeads(data.leads || []);
-        setStats(prev => ({
-          ...prev,
-          totalLeads: prev.totalLeads + (data.leads?.length || 0),
-          activeSearches: prev.activeSearches + 1
-        }));
-      } else {
-        console.error('API request failed:', response.statusText);
-        setLeads([]);
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      setLeads([]);
-    } finally {
+    // Simulate API delay
+    setTimeout(() => {
+      const mockResults = generateMockLeads(searchQuery, location, category);
+      setLeads(mockResults);
+      setStats(prev => ({
+        ...prev,
+        totalLeads: prev.totalLeads + mockResults.length,
+        activeSearches: prev.activeSearches + 1
+      }));
       setIsSearching(false);
-    }
+    }, 2000);
   };
 
   const exportLeads = () => {
+    if (leads.length === 0) {
+      alert('No leads to export');
+      return;
+    }
+
+    const csvHeader = 'Name,Category,Phone,Email,Website,Address,Rating,Reviews\n';
     const csvContent = leads.map(lead => 
-      `${lead.name},${lead.category},${lead.phone},${lead.email},${lead.website},${lead.address}`
+      `"${lead.name}","${lead.category}","${lead.phone}","${lead.email}","${lead.website}","${lead.address}","${lead.rating}","${lead.reviews}"`
     ).join('\n');
     
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvHeader + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'leadwave-leads.csv';
+    a.download = `leadwave-leads-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -73,17 +152,16 @@ const App = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center relative overflow-hidden">
-                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 12C2 12 5 8 12 8C19 8 22 12 22 12C22 12 19 16 12 16C5 16 2 12 2 12Z" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path d="M12 10C13.1046 10 14 10.8954 14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10Z" fill="currentColor"/>
-                  <path d="M2 12C4 8 8 6 12 6C16 6 20 8 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
-                  <path d="M2 12C4 16 8 18 12 18C16 18 20 16 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
-                </svg>
-              </div>
+              <img 
+                src="/leadwave-logo.svg" 
+                alt="LeadWave Icon" 
+                className="h-8 w-8"
+              />
               <div>
-                <h1 className="text-xl font-bold text-white">LeadWave™</h1>
-                <p className="text-xs text-gray-300">Professional Lead Generation</p>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  LeadWave™
+                </h1>
+                <p className="text-gray-300 text-xs">Professional Lead Generation</p>
               </div>
             </div>
             
@@ -165,15 +243,14 @@ const App = () => {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                  style={{ color: '#d1d5db' }}
+                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
                 >
-                  <option value="" style={{ color: '#374151', backgroundColor: '#ffffff' }}>All Categories</option>
-                  <option value="restaurant" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Restaurants</option>
-                  <option value="retail" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Retail</option>
-                  <option value="services" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Services</option>
-                  <option value="healthcare" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Healthcare</option>
-                  <option value="technology" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Technology</option>
+                  <option value="" className="text-gray-900 bg-white">All Categories</option>
+                  <option value="restaurant" className="text-gray-900 bg-white">Restaurants</option>
+                  <option value="retail" className="text-gray-900 bg-white">Retail</option>
+                  <option value="services" className="text-gray-900 bg-white">Services</option>
+                  <option value="healthcare" className="text-gray-900 bg-white">Healthcare</option>
+                  <option value="technology" className="text-gray-900 bg-white">Technology</option>
                 </select>
               </div>
             </div>
@@ -322,21 +399,20 @@ const App = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 12C2 12 5 8 12 8C19 8 22 12 22 12C22 12 19 16 12 16C5 16 2 12 2 12Z" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path d="M12 10C13.1046 10 14 10.8954 14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10Z" fill="currentColor"/>
-                  <path d="M2 12C4 8 8 6 12 6C16 6 20 8 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
-                  <path d="M2 12C4 16 8 18 12 18C16 18 20 16 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
-                </svg>
-              </div>
-              <span className="text-xl font-bold text-white">LeadWave™</span>
+              <img 
+                src="/leadwave-logo.svg" 
+                alt="LeadWave Icon" 
+                className="h-6 w-6"
+              />
+              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                LeadWave™
+              </h2>
             </div>
             <p className="text-gray-300 mb-4">
               Professional Lead Generation Platform
             </p>
             <p className="text-gray-400 text-sm">
-              © 2024 LeadWave™. All rights reserved. | Powered by Google Places API
+              © {currentYear} LeadWave™. All rights reserved. | Powered by <a href="https://ecliptai.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">ecliptAI.com</a>
             </p>
           </div>
         </div>

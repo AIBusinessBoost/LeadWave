@@ -1,0 +1,19 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="url(#logoGradient)" stroke="#1E293B" stroke-width="2"/>
+  
+  <!-- Wave pattern -->
+  <path d="M6 12 Q10 8 14 12 T22 12" stroke="white" stroke-width="2" fill="none" opacity="0.8"/>
+  <path d="M6 16 Q10 12 14 16 T22 16" stroke="white" stroke-width="2" fill="none" opacity="0.6"/>
+  <path d="M6 20 Q10 16 14 20 T22 20" stroke="white" stroke-width="2" fill="none" opacity="0.4"/>
+  
+  <!-- Central dot -->
+  <circle cx="16" cy="16" r="2" fill="white"/>
+</svg>
