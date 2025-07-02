@@ -14,85 +14,43 @@ const App = () => {
     avgResponseTime: '2.3s'
   });
 
-  // Demo leads data
-  const demoLeads = [
-    {
-      id: 1,
-      name: "TechFlow Solutions",
-      category: "Software Development",
-      phone: "+1 (555) 123-4567",
-      email: "contact@techflow.com",
-      website: "www.techflow.com",
-      address: "123 Tech Street, San Francisco, CA",
-      rating: 4.8,
-      reviews: 127,
-      verified: true
-    },
-    {
-      id: 2,
-      name: "Digital Marketing Pro",
-      category: "Marketing Agency",
-      phone: "+1 (555) 987-6543",
-      email: "hello@digitalmarketingpro.com",
-      website: "www.digitalmarketingpro.com",
-      address: "456 Marketing Ave, New York, NY",
-      rating: 4.9,
-      reviews: 89,
-      verified: true
-    },
-    {
-      id: 3,
-      name: "Creative Design Studio",
-      category: "Design Agency",
-      phone: "+1 (555) 456-7890",
-      email: "info@creativedesign.com",
-      website: "www.creativedesign.com",
-      address: "789 Design Blvd, Los Angeles, CA",
-      rating: 4.7,
-      reviews: 156,
-      verified: false
-    },
-    {
-      id: 4,
-      name: "CloudTech Innovations",
-      category: "Cloud Services",
-      phone: "+1 (555) 321-0987",
-      email: "support@cloudtech.com",
-      website: "www.cloudtech.com",
-      address: "321 Cloud Way, Seattle, WA",
-      rating: 4.6,
-      reviews: 203,
-      verified: true
-    },
-    {
-      id: 5,
-      name: "Local Restaurant Group",
-      category: "Food & Beverage",
-      phone: "+1 (555) 654-3210",
-      email: "orders@localrestaurant.com",
-      website: "www.localrestaurant.com",
-      address: "654 Food Street, Chicago, IL",
-      rating: 4.5,
-      reviews: 342,
-      verified: true
-    }
-  ];
-
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setLeads(demoLeads);
+    try {
+      // Make actual API call to backend
+      const response = await fetch('/api/search-leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchQuery,
+          location: location,
+          category: category
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLeads(data.leads || []);
+        setStats(prev => ({
+          ...prev,
+          totalLeads: prev.totalLeads + (data.leads?.length || 0),
+          activeSearches: prev.activeSearches + 1
+        }));
+      } else {
+        console.error('API request failed:', response.statusText);
+        setLeads([]);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setLeads([]);
+    } finally {
       setIsSearching(false);
-      setStats(prev => ({
-        ...prev,
-        totalLeads: prev.totalLeads + demoLeads.length,
-        activeSearches: prev.activeSearches + 1
-      }));
-    }, 2000);
+    }
   };
 
   const exportLeads = () => {
@@ -115,8 +73,13 @@ const App = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center relative overflow-hidden">
+                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 12C2 12 5 8 12 8C19 8 22 12 22 12C22 12 19 16 12 16C5 16 2 12 2 12Z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <path d="M12 10C13.1046 10 14 10.8954 14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10Z" fill="currentColor"/>
+                  <path d="M2 12C4 8 8 6 12 6C16 6 20 8 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                  <path d="M2 12C4 16 8 18 12 18C16 18 20 16 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                </svg>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white">LeadWave™</h1>
@@ -202,14 +165,15 @@ const App = () => {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                  className="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                  style={{ color: '#d1d5db' }}
                 >
-                  <option value="">All Categories</option>
-                  <option value="restaurant">Restaurants</option>
-                  <option value="retail">Retail</option>
-                  <option value="services">Services</option>
-                  <option value="healthcare">Healthcare</option>
-                  <option value="technology">Technology</option>
+                  <option value="" style={{ color: '#374151', backgroundColor: '#ffffff' }}>All Categories</option>
+                  <option value="restaurant" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Restaurants</option>
+                  <option value="retail" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Retail</option>
+                  <option value="services" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Services</option>
+                  <option value="healthcare" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Healthcare</option>
+                  <option value="technology" style={{ color: '#374151', backgroundColor: '#ffffff' }}>Technology</option>
                 </select>
               </div>
             </div>
@@ -255,8 +219,8 @@ const App = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {leads.map((lead) => (
-                <div key={lead.id} className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+              {leads.map((lead, index) => (
+                <div key={lead.id || index} className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
@@ -359,7 +323,12 @@ const App = () => {
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 12C2 12 5 8 12 8C19 8 22 12 22 12C22 12 19 16 12 16C5 16 2 12 2 12Z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <path d="M12 10C13.1046 10 14 10.8954 14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10Z" fill="currentColor"/>
+                  <path d="M2 12C4 8 8 6 12 6C16 6 20 8 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                  <path d="M2 12C4 16 8 18 12 18C16 18 20 16 22 12" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+                </svg>
               </div>
               <span className="text-xl font-bold text-white">LeadWave™</span>
             </div>
