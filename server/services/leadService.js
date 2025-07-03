@@ -12,6 +12,9 @@ export async function searchLeads({ niche, location, country, maxResults }) {
   try {
     console.log(`🔍 Searching for ${niche} in ${location}, ${country}`);
     
+    // IMPORTANT: This is a demo version - replace with real Google Places API
+    console.warn('⚠️  DEMO MODE: Using placeholder data. Connect Google Places API for real leads.');
+    
     // Search Google Places for businesses
     const googleResults = await searchGooglePlaces(niche, location, country, maxResults);
     
@@ -22,7 +25,8 @@ export async function searchLeads({ niche, location, country, maxResults }) {
       leads: enrichedLeads,
       totalSearched: googleResults.length,
       leadsFound: enrichedLeads.length,
-      successRate: googleResults.length > 0 ? Math.round((enrichedLeads.length / googleResults.length) * 100) : 0
+      successRate: googleResults.length > 0 ? Math.round((enrichedLeads.length / googleResults.length) * 100) : 0,
+      isDemoData: true // Flag to indicate this is demo data
     };
   } catch (error) {
     console.error('Lead search error:', error);
@@ -31,56 +35,39 @@ export async function searchLeads({ niche, location, country, maxResults }) {
 }
 
 async function searchGooglePlaces(niche, location, country, maxResults) {
-  // Mock data for development - replace with actual Google Places API
-  const mockLeads = [
+  // DEMO DATA - Replace with actual Google Places API integration
+  const demoLeads = [
     {
-      businessName: "Joe's Pizza Palace",
-      ownerName: "Joe Martinez",
-      email: "joe@joespizza.com",
-      phone: "+1-555-0123",
-      website: "https://joespizza.com",
-      address: "123 Main St, New York, NY 10001",
-      rating: 4.5,
-      reviewCount: 127,
-      isInGooglePack: true,
-      isClaimed: true,
-      description: "Authentic New York style pizza since 1985"
-    },
-    {
-      businessName: "Downtown Dental Care",
-      ownerName: "Dr. Sarah Johnson",
-      email: "info@downtowndental.com",
-      phone: "+1-555-0456",
-      website: "https://downtowndental.com",
-      address: "456 Oak Ave, New York, NY 10002",
-      rating: 4.8,
-      reviewCount: 89,
+      businessName: `${niche} Pro Services`,
+      ownerName: "Demo Owner",
+      email: `info@${niche.toLowerCase().replace(/\s+/g, '')}pro.com`,
+      phone: "+1-555-DEMO",
+      website: `https://${niche.toLowerCase().replace(/\s+/g, '')}pro.com`,
+      address: `123 Demo St, ${location}`,
+      rating: 4.2,
+      reviewCount: 25,
       isInGooglePack: false,
       isClaimed: true,
-      description: "Complete dental care for the whole family"
+      description: `Professional ${niche} services in ${location}`,
+      isDemoData: true
     },
     {
-      businessName: "Quick Fix Plumbing",
-      ownerName: "Mike Thompson",
-      email: "mike@quickfixplumbing.com",
-      phone: "+1-555-0789",
-      website: "https://quickfixplumbing.com",
-      address: "789 Pine St, New York, NY 10003",
-      rating: 4.2,
-      reviewCount: 45,
+      businessName: `${location} ${niche} Solutions`,
+      ownerName: "Sample Business Owner",
+      email: `contact@${location.toLowerCase().replace(/\s+/g, '')}${niche.toLowerCase().replace(/\s+/g, '')}.com`,
+      phone: "+1-555-SAMPLE",
+      website: `https://${location.toLowerCase().replace(/\s+/g, '')}${niche.toLowerCase().replace(/\s+/g, '')}.com`,
+      address: `456 Sample Ave, ${location}`,
+      rating: 4.7,
+      reviewCount: 89,
       isInGooglePack: true,
       isClaimed: false,
-      description: "24/7 emergency plumbing services"
+      description: `Leading ${niche} provider in ${location}`,
+      isDemoData: true
     }
   ];
 
-  // Filter mock data based on niche
-  const filteredLeads = mockLeads.filter(lead => 
-    lead.businessName.toLowerCase().includes(niche.toLowerCase()) ||
-    lead.description.toLowerCase().includes(niche.toLowerCase())
-  );
-
-  return filteredLeads.slice(0, maxResults);
+  return demoLeads.slice(0, maxResults);
 }
 
 async function enrichLeadsData(leads) {
@@ -103,11 +90,12 @@ async function enrichLeadsData(leads) {
 
 async function enrichSingleLead(lead) {
   try {
-    // Mock enrichment - in production, this would scrape websites, verify emails, etc.
+    // Demo enrichment - in production, this would scrape websites, verify emails, etc.
     const enrichedLead = {
       ...lead,
       lastUpdated: new Date().toISOString(),
-      dataQuality: calculateDataQuality(lead)
+      dataQuality: calculateDataQuality(lead),
+      isDemoData: true
     };
     
     return enrichedLead;

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Building, Mail, Phone, Globe, MapPin, Star, CheckCircle, XCircle } from 'lucide-react';
+import { Building, Mail, Phone, Globe, MapPin, Star, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
-export function LeadResults({ leads }) {
+export function LeadResults({ leads, isDemoData }) {
   if (!leads || leads.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-8 text-center">
@@ -14,14 +14,34 @@ export function LeadResults({ leads }) {
 
   return (
     <div className="space-y-4">
+      {isDemoData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mr-3" />
+          <div>
+            <h4 className="font-semibold text-amber-800">Demo Mode Active</h4>
+            <p className="text-amber-700 text-sm">
+              These are sample leads for demonstration. Connect Google Places API for real business data.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Lead Results ({leads.length})
+          Lead Results ({leads.length}) {isDemoData && '- Demo Data'}
         </h2>
       </div>
 
       {leads.map((lead, index) => (
-        <div key={index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+        <div key={index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200 relative">
+          {lead.isDemoData && (
+            <div className="absolute top-4 right-4">
+              <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-medium">
+                DEMO
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -59,32 +79,27 @@ export function LeadResults({ leads }) {
               {lead.email && (
                 <div className="flex items-center text-gray-600">
                   <Mail className="h-4 w-4 mr-2 text-blue-500" />
-                  <a href={`mailto:${lead.email}`} className="hover:text-blue-600 transition-colors">
+                  <span className="hover:text-blue-600 transition-colors">
                     {lead.email}
-                  </a>
+                  </span>
                 </div>
               )}
               
               {lead.phone && (
                 <div className="flex items-center text-gray-600">
                   <Phone className="h-4 w-4 mr-2 text-green-500" />
-                  <a href={`tel:${lead.phone}`} className="hover:text-green-600 transition-colors">
+                  <span className="hover:text-green-600 transition-colors">
                     {lead.phone}
-                  </a>
+                  </span>
                 </div>
               )}
               
               {lead.website && (
                 <div className="flex items-center text-gray-600">
                   <Globe className="h-4 w-4 mr-2 text-purple-500" />
-                  <a 
-                    href={lead.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-purple-600 transition-colors truncate"
-                  >
+                  <span className="hover:text-purple-600 transition-colors truncate">
                     {lead.website}
-                  </a>
+                  </span>
                 </div>
               )}
             </div>
