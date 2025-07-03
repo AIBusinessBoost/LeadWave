@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Phone, Mail, Globe, Download, Filter, Zap, Target, TrendingUp, Users, Building, Star, ChevronRight, Play, CheckCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Search, MapPin, Phone, Mail, Globe, Download, Filter, Zap, Target, TrendingUp, Users, Building, Star, ChevronRight, Play, CheckCircle, RefreshCw, Trash2, RotateCcw, Send, X, Copy, BarChart3, Square, CheckSquare } from 'lucide-react';
 import { leadTracker } from './utils/leadTracker.js';
 import { DuplicateStats } from './components/DuplicateStats.jsx';
+import { ColdEmailModal } from './components/ColdEmailModal.jsx';
+import { EmailAnalytics } from './components/EmailAnalytics.jsx';
+import { QuickActions } from './components/QuickActions.jsx';
+import { LeadFilters } from './components/LeadFilters.jsx';
+import { LeadScoring } from './components/LeadScoring.jsx';
+import { BulkActions } from './components/BulkActions.jsx';
+import { LeadInsights } from './components/LeadInsights.jsx';
+import { SearchHistory } from './components/SearchHistory.jsx';
 
 const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -9,8 +17,13 @@ const App = () => {
   const [category, setCategory] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [leads, setLeads] = useState([]);
+  const [filteredLeads, setFilteredLeads] = useState([]);
   const [duplicateResults, setDuplicateResults] = useState(null);
   const [trackerStats, setTrackerStats] = useState(null);
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [selectedLeads, setSelectedLeads] = useState(new Set());
   const [stats, setStats] = useState({
     totalLeads: 12847,
     activeSearches: 23,
@@ -22,6 +35,11 @@ const App = () => {
   useEffect(() => {
     setTrackerStats(leadTracker.getStats());
   }, []);
+
+  // Update filtered leads when leads change
+  useEffect(() => {
+    setFilteredLeads(leads);
+  }, [leads]);
 
   // Mock lead data for demonstration - with variations for testing duplicates
   const generateMockLeads = (query, loc, cat, searchCount = 0) => {
@@ -144,6 +162,7 @@ const App = () => {
       
       // Update state with filtered leads and results
       setLeads(results.validLeads);
+      setFilteredLeads(results.validLeads);
       setDuplicateResults(results);
       setTrackerStats(leadTracker.getStats());
       
@@ -152,6 +171,16 @@ const App = () => {
         totalLeads: prev.totalLeads + results.validLeads.length,
         activeSearches: prev.activeSearches + 1
       }));
+      
+      // Add to search history
+      if (window.addToSearchHistory) {
+        window.addToSearchHistory({
+          query: searchQuery,
+          location: location,
+          category: category,
+          resultsCount: results.validLeads.length
+        });
+      }
       
       setIsSearching(false);
 
@@ -166,8 +195,19 @@ const App = () => {
     }, 2000);
   };
 
-  const exportLeads = () => {
-    if (leads.length === 0) {
+  const handleRerunSearch = (searchParams) => {
+    setSearchQuery(searchParams.query);
+    setLocation(searchParams.location || '');
+    setCategory(searchParams.category || '');
+    
+    // Trigger search after state update
+    setTimeout(() => {
+      handleSearch();
+    }, 100);
+  };
+
+  const exportLeads = (leadsToExport = filteredLeads) => {
+    if (leadsToExport.length === 0) {
       alert('No leads to export');
       return;
     }
@@ -187,7 +227,7 @@ const App = () => {
         'Status'
       ];
 
-      const csvRows = leads.map(lead => {
+      const csvRows = leadsToExport.map(lead => {
         const status = lead.isNew ? 'New' : lead.isUpdated ? 'Updated' : 'Existing';
         return [
           `"${(lead.name || '').replace(/"/g, '""')}"`,
@@ -221,7 +261,7 @@ const App = () => {
       // Clean up
       URL.revokeObjectURL(url);
       
-      console.log('✅ CSV export successful:', leads.length, 'leads exported');
+      console.log('✅ CSV export successful:', leadsToExport.length, 'leads exported');
     } catch (error) {
       console.error('❌ CSV export failed:', error);
       alert('Export failed. Please try again.');
@@ -235,6 +275,77 @@ const App = () => {
       setDuplicateResults(null);
       alert('All tracked leads have been cleared.');
     }
+  };
+
+  const resetCounters = () => {
+    if (confirm('Are you sure you want to reset all counters? This will reset Total Leads, Active Searches, Success Rate, and Response Time to default values.')) {
+      setStats({
+        totalLeads: 0,
+        activeSearches: 0,
+        successRate: 0,
+        avgResponseTime: '0s'
+      });
+      alert('All counters have been reset successfully!');
+    }
+  };
+
+  const handleSendEmail = (lead) => {
+    setSelectedLead(lead);
+    setShowEmailModal(true);
+  };
+
+  const handleBulkEmail = (selectedLeadData) => {
+    alert(`Bulk email feature will send emails to ${selectedLeadData.length} leads. This feature is coming soon!`);
+  };
+
+  const handleBulkDelete = (leadIds) => {
+    setLeads(prevLeads => prevLeads.filter(lead => !leadIds.includes(lead.id)));
+    setFilteredLeads(prevLeads => prevLeads.filter(lead => !leadIds.includes(lead.id)));
+  };
+
+  const handleFilterChange = (filters) => {
+    let filtered = [...leads];
+
+    if (filters.category) {
+      filtered = filtered.filter(lead => lead.category === filters.category);
+    }
+
+    if (filters.rating) {
+      const minRating = parseFloat(filters.rating.replace('+', ''));
+      filtered = filtered.filter(lead => lead.rating >= minRating);
+    }
+
+    if (filters.verified === 'Verified Only') {
+      filtered = filtered.filter(lead => lead.verified);
+    } else if (filters.verified === 'Unverified Only') {
+      filtered = filtered.filter(lead => !lead.verified);
+    }
+
+    if (filters.status && filters.status !== 'All') {
+      if (filters.status === 'New') {
+        filtered = filtered.filter(lead => lead.isNew);
+      } else if (filters.status === 'Updated') {
+        filtered = filtered.filter(lead => lead.isUpdated);
+      } else if (filters.status === 'Existing') {
+        filtered = filtered.filter(lead => !lead.isNew && !lead.isUpdated);
+      }
+    }
+
+    setFilteredLeads(filtered);
+  };
+
+  const refreshData = () => {
+    handleSearch();
+  };
+
+  const toggleLeadSelection = (leadId) => {
+    const newSelected = new Set(selectedLeads);
+    if (newSelected.has(leadId)) {
+      newSelected.delete(leadId);
+    } else {
+      newSelected.add(leadId);
+    }
+    setSelectedLeads(newSelected);
   };
 
   const currentYear = new Date().getFullYear();
@@ -255,7 +366,7 @@ const App = () => {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                   LeadWave™
                 </h1>
-                <p className="text-gray-300 text-xs">Professional Lead Generation</p>
+                <p className="text-gray-300 text-xs">Enterprise Lead Generation Platform</p>
               </div>
             </div>
             
@@ -267,6 +378,24 @@ const App = () => {
                 </div>
                 <span>{stats.totalLeads.toLocaleString()} Leads Generated</span>
               </div>
+              
+              <button
+                onClick={() => setShowAnalytics(!showAnalytics)}
+                className="flex items-center space-x-2 px-3 py-2 bg-purple-600/20 text-purple-300 rounded-lg hover:bg-purple-600/30 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                title="View analytics"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden md:inline">Analytics</span>
+              </button>
+              
+              <button
+                onClick={resetCounters}
+                className="flex items-center space-x-2 px-3 py-2 bg-orange-600/20 text-orange-300 rounded-lg hover:bg-orange-600/30 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                title="Reset all counters"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="hidden md:inline">Reset Counters</span>
+              </button>
               
               {trackerStats && trackerStats.totalTracked > 0 && (
                 <button
@@ -294,7 +423,7 @@ const App = () => {
               </span>
             </h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Discover and connect with potential customers using our advanced lead generation platform with intelligent duplicate prevention.
+              Enterprise-grade lead generation platform with AI-powered scoring, bulk actions, and intelligent duplicate prevention.
             </p>
           </div>
 
@@ -381,6 +510,61 @@ const App = () => {
         </div>
       </section>
 
+      {/* Search History */}
+      <section className="py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <SearchHistory onRerunSearch={handleRerunSearch} />
+        </div>
+      </section>
+
+      {/* Analytics Section */}
+      {showAnalytics && (
+        <section className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <EmailAnalytics />
+          </div>
+        </section>
+      )}
+
+      {/* Lead Insights */}
+      {leads.length > 0 && (
+        <section className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <LeadInsights leads={leads} />
+          </div>
+        </section>
+      )}
+
+      {/* Quick Actions */}
+      {leads.length > 0 && (
+        <section className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <QuickActions
+              onExport={exportLeads}
+              onRefresh={refreshData}
+              onClearData={clearTrackedLeads}
+              onShowAnalytics={() => setShowAnalytics(!showAnalytics)}
+              onShowSettings={() => alert('Settings panel coming soon!')}
+              leadsCount={filteredLeads.length}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Bulk Actions */}
+      {leads.length > 0 && (
+        <section className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <BulkActions
+              leads={leads}
+              onBulkEmail={handleBulkEmail}
+              onBulkExport={exportLeads}
+              onBulkDelete={handleBulkDelete}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Duplicate Prevention Stats */}
       {duplicateResults && (
         <section className="py-6 px-4 sm:px-6 lg:px-8">
@@ -393,18 +577,33 @@ const App = () => {
         </section>
       )}
 
-      {/* Results Section */}
+      {/* Lead Filters */}
       {leads.length > 0 && (
+        <section className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <LeadFilters
+              leads={leads}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Results Section */}
+      {filteredLeads.length > 0 && (
         <section className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-2xl font-bold text-white mb-2">Search Results</h3>
-                <p className="text-gray-300">Found {leads.length} unique leads (duplicates filtered)</p>
+                <p className="text-gray-300">
+                  Showing {filteredLeads.length} of {leads.length} leads 
+                  {filteredLeads.length !== leads.length && ' (filtered)'}
+                </p>
               </div>
               
               <button
-                onClick={exportLeads}
+                onClick={() => exportLeads()}
                 className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
               >
                 <Download className="w-4 h-4" />
@@ -413,8 +612,22 @@ const App = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {leads.map((lead, index) => (
+              {filteredLeads.map((lead, index) => (
                 <div key={lead.id || index} className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 relative">
+                  {/* Selection Checkbox */}
+                  <div className="absolute top-4 left-4">
+                    <button
+                      onClick={() => toggleLeadSelection(lead.id)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      {selectedLeads.has(lead.id) ? (
+                        <CheckSquare className="w-5 h-5 text-blue-400" />
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+
                   {/* Status Badge */}
                   {(lead.isNew || lead.isUpdated) && (
                     <div className="absolute top-4 right-4">
@@ -427,7 +640,7 @@ const App = () => {
                     </div>
                   )}
 
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between mb-4 mt-6">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <h4 className="text-lg font-semibold text-white">{lead.name}</h4>
@@ -466,7 +679,18 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-white/20">
+                  {/* Lead Scoring */}
+                  <LeadScoring lead={lead} />
+
+                  <div className="mt-4 pt-4 border-t border-white/20 space-y-2">
+                    <button 
+                      onClick={() => handleSendEmail(lead)}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>Send Cold Email</span>
+                    </button>
+                    
                     <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <span>View Details</span>
                       <ChevronRight className="w-4 h-4" />
@@ -485,7 +709,7 @@ const App = () => {
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold text-white mb-4">Why Choose LeadWave™?</h3>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Advanced features designed to supercharge your lead generation efforts
+              Enterprise-grade features designed to supercharge your lead generation efforts
             </p>
           </div>
 
@@ -494,9 +718,9 @@ const App = () => {
               <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Target className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-xl font-semibold text-white mb-4">Precision Targeting</h4>
+              <h4 className="text-xl font-semibold text-white mb-4">AI Lead Scoring</h4>
               <p className="text-gray-300">
-                Advanced filtering and search capabilities to find exactly the leads you need for your business.
+                Intelligent lead scoring system that prioritizes your best prospects based on multiple quality factors.
               </p>
             </div>
 
@@ -504,9 +728,9 @@ const App = () => {
               <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <TrendingUp className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-xl font-semibold text-white mb-4">Real-time Data</h4>
+              <h4 className="text-xl font-semibold text-white mb-4">Bulk Operations</h4>
               <p className="text-gray-300">
-                Access up-to-date business information with real-time verification and contact details.
+                Streamline your workflow with bulk email sending, export, and management capabilities.
               </p>
             </div>
 
@@ -514,9 +738,9 @@ const App = () => {
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-xl font-semibold text-white mb-4">Duplicate Prevention</h4>
+              <h4 className="text-xl font-semibold text-white mb-4">Smart Analytics</h4>
               <p className="text-gray-300">
-                Intelligent tracking system prevents duplicate leads while allowing updates for changed information.
+                Comprehensive insights and analytics to optimize your lead generation and outreach strategies.
               </p>
             </div>
           </div>
@@ -538,7 +762,7 @@ const App = () => {
               </h2>
             </div>
             <p className="text-gray-300 mb-4">
-              Professional Lead Generation Platform
+              Enterprise Lead Generation Platform
             </p>
             <p className="text-gray-400 text-sm">
               © {currentYear} LeadWave™. All rights reserved. | Powered by <a href="https://ecliptai.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">ecliptAI.com</a>
@@ -546,6 +770,17 @@ const App = () => {
           </div>
         </div>
       </footer>
+
+      {/* Cold Email Modal */}
+      {showEmailModal && selectedLead && (
+        <ColdEmailModal 
+          lead={selectedLead}
+          onClose={() => {
+            setShowEmailModal(false);
+            setSelectedLead(null);
+          }}
+        />
+      )}
     </div>
   );
 };
